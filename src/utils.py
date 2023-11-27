@@ -180,3 +180,61 @@ def convert_2_timestamp(column, data):
                 timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
         return timestamp_
     else: print(f"{column} not in data")
+
+
+def convert_2_timestamp(column, data):
+    """convert from unix time to readable timestamp
+        args: column: columns that needs to be converted to timestamp
+                data: data that has the specified column
+    """
+    if column in data.columns.values:
+        timestamp_ = []
+        for time_unix in data[column]:
+            if time_unix == 0:
+                timestamp_.append(0)
+            else:
+                a = datetime.datetime.fromtimestamp(float(time_unix))
+                timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
+        return timestamp_
+    else: 
+        print(f"{column} not in data")
+
+def get_tagged_users(df):
+    """get all @ in the messages"""
+
+    return df['msg_content'].map(lambda x: re.findall(r'@U\w+', x))
+
+
+    
+def map_userid_2_realname(user_profile: dict, comm_dict: dict, plot=False):
+    """
+    map slack_id to realnames
+    user_profile: a dictionary that contains users info such as real_names
+    comm_dict: a dictionary that contains slack_id and total_message sent by that slack_id
+    """
+    user_dict = {} # to store the id
+    real_name = [] # to store the real name
+    ac_comm_dict = {} # to store the mapping
+    count = 0
+    # collect all the real names
+    for i in range(len(user_profile['profile'])):
+        real_name.append(dict(user_profile['profile'])[i]['real_name'])
+
+    # loop the slack ids
+    for i in user_profile['id']:
+        user_dict[i] = real_name[count]
+        count += 1
+
+    # to store mapping
+    for i in comm_dict:
+        if i in user_dict:
+            ac_comm_dict[user_dict[i]] = comm_dict[i]
+
+    ac_comm_dict = pd.DataFrame(data= zip(ac_comm_dict.keys(), ac_comm_dict.values()),
+    columns=['LearnerName', '# of Msg sent in Threads']).sort_values(by='# of Msg sent in Threads', ascending=False)
+    
+    if plot:
+        ac_comm_dict.plot.bar(figsize=(15, 7.5), x='LearnerName', y='# of Msg sent in Threads')
+        plt.title('Student based on Message sent in thread', size=20)
+        
+    return ac_comm_dict
