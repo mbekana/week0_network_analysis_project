@@ -131,7 +131,6 @@ class SlackDataLoader:
                         tm_thread_end.append(None)
                 else:
                     print(f"Skipping row: {row}")
-                    # Handle the case where row is a string (e.g., skip or perform appropriate action)
                     pass
 
             data = zip(msg_type, msg_content, sender_id, time_msg, msg_dist, time_thread_st,
