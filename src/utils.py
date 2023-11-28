@@ -157,23 +157,6 @@ def get_messages_from_channel(channel_path):
     return df
 
 
-# def convert_2_timestamp(column, data):
-#     """convert from unix time to readable timestamp
-#         args: column: columns that needs to be converted to timestamp
-#                 data: data that has the specified column
-#     """
-#     if column in data.columns.values:
-#         timestamp_ = []
-#         for time_unix in data[column]:
-#             if time_unix == 0:
-#                 timestamp_.append(0)
-#             else:
-#                 a = datetime.datetime.fromtimestamp(float(time_unix))
-#                 timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
-#         return timestamp_
-#     else: print(f"{column} not in data")
-
-
 def convert_2_timestamp(column, data):
     """Convert from Unix time to readable timestamp."""
     if column in data.columns.values:

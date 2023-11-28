@@ -156,20 +156,20 @@ class SlackDataLoader:
         combined = []
         for json_file in glob.glob(f"{path}*.json"):
             with open(json_file, 'r') as slack_data:
-                combined.append(json.load(slack_data))  # Fix: Append the loaded JSON object
+                combined.append(json.load(slack_data))  # Load the JSON data from each file
 
         reaction_name, reaction_count, reaction_users, msg, user_id = [], [], [], [], []
 
         for k in combined:
-            for i_count, i in enumerate(k):  # Fix: Iterate over the loaded JSON object
-                if 'reactions' in i.keys():
+            for i_count, i in enumerate(k):  # Iterate over the loaded JSON object
+                if isinstance(i, dict) and 'reactions' in i.keys():  # Check if i is a dictionary with 'reactions' key
                     for j in range(len(i['reactions'])):
                         msg.append(i['text'])
                         user_id.append(i['user'])
                         reaction_name.append(i['reactions'][j]['name'])
                         reaction_count.append(i['reactions'][j]['count'])
                         reaction_users.append(",".join(i['reactions'][j]['users']))
-                        
+
         data_reaction = zip(reaction_name, reaction_count, reaction_users, msg, user_id)
         columns_reaction = ['reaction_name', 'reaction_count', 'reaction_users_count', 'message', 'user_id']
         df_reaction = pd.DataFrame(data=data_reaction, columns=columns_reaction)
