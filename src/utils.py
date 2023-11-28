@@ -46,32 +46,31 @@ def get_msgs_df_info(df):
 
 def get_messages_dict(msgs):
     msg_list = {
-            "msg_id":[],
-            "text":[],
-            "attachments":[],
-            "user":[],
-            "mentions":[],
-            "emojis":[],
-            "reactions":[],
-            "replies":[],
-            "replies_to":[],
-            "ts":[],
-            "links":[],
-            "link_count":[]
-            }
-
+        "msg_id": [],
+        "text": [],
+        "attachments": [],
+        "user": [],
+        "mentions": [],
+        "emojis": [],
+        "reactions": [],
+        "replies": [],
+        "replies_to": [],
+        "ts": [],
+        "links": [],
+        "link_count": []
+    }
 
     for msg in msgs:
-        if "subtype" not in msg:
+        if "subtype" not in msg and msg.get("blocks") is not None:
             try:
-                msg_list["msg_id"].append(msg["client_msg_id"])
+                msg_list["msg_id"].append(msg.get("client_msg_id", None))
             except:
                 msg_list["msg_id"].append(None)
-            
-            msg_list["text"].append(msg["text"])
-            msg_list["user"].append(msg["user"])
-            msg_list["ts"].append(msg["ts"])
-            
+
+            msg_list["text"].append(msg.get("text", None))
+            msg_list["user"].append(msg.get("user", None))
+            msg_list["ts"].append(msg.get("ts", None))
+
             if "reactions" in msg:
                 msg_list["reactions"].append(msg["reactions"])
             else:
@@ -86,42 +85,35 @@ def get_messages_dict(msgs):
                 msg_list["replies"].append(msg["replies"])
             else:
                 msg_list["replies"].append(None)
-            
-            if "blocks" in msg:
-                emoji_list = []
-                mention_list = []
-                link_count = 0
-                links = []
-                
-                for blk in msg["blocks"]:
-                    if "elements" in blk:
-                        for elm in blk["elements"]:
-                            if "elements" in elm:
-                                for elm_ in elm["elements"]:
-                                    
-                                    if "type" in elm_:
-                                        if elm_["type"] == "emoji":
-                                            emoji_list.append(elm_["name"])
 
-                                        if elm_["type"] == "user":
-                                            mention_list.append(elm_["user_id"])
-                                        
-                                        if elm_["type"] == "link":
-                                            link_count += 1
-                                            links.append(elm_["url"])
+            emoji_list = []
+            mention_list = []
+            link_count = 0
+            links = []
 
+            for blk in msg["blocks"]:
+                if "elements" in blk:
+                    for elm in blk["elements"]:
+                        if "elements" in elm:
+                            for elm_ in elm["elements"]:
+                                if "type" in elm_:
+                                    if elm_["type"] == "emoji":
+                                        emoji_list.append(elm_["name"])
 
-                msg_list["emojis"].append(emoji_list)
-                msg_list["mentions"].append(mention_list)
-                msg_list["links"].append(links)
-                msg_list["link_count"].append(link_count)
-            else:
-                msg_list["emojis"].append(None)
-                msg_list["mentions"].append(None)
-                msg_list["links"].append(None)
-                msg_list["link_count"].append(0)
+                                    if elm_["type"] == "user":
+                                        mention_list.append(elm_["user_id"])
+
+                                    if elm_["type"] == "link":
+                                        link_count += 1
+                                        links.append(elm_["url"])
+
+            msg_list["emojis"].append(emoji_list)
+            msg_list["mentions"].append(mention_list)
+            msg_list["links"].append(links)
+            msg_list["link_count"].append(link_count)
     
     return msg_list
+
 
 def from_msg_get_replies(msg):
     replies = []
@@ -165,39 +157,46 @@ def get_messages_from_channel(channel_path):
     return df
 
 
-def convert_2_timestamp(column, data):
-    """convert from unix time to readable timestamp
-        args: column: columns that needs to be converted to timestamp
-                data: data that has the specified column
-    """
-    if column in data.columns.values:
-        timestamp_ = []
-        for time_unix in data[column]:
-            if time_unix == 0:
-                timestamp_.append(0)
-            else:
-                a = datetime.datetime.fromtimestamp(float(time_unix))
-                timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
-        return timestamp_
-    else: print(f"{column} not in data")
+# def convert_2_timestamp(column, data):
+#     """convert from unix time to readable timestamp
+#         args: column: columns that needs to be converted to timestamp
+#                 data: data that has the specified column
+#     """
+#     if column in data.columns.values:
+#         timestamp_ = []
+#         for time_unix in data[column]:
+#             if time_unix == 0:
+#                 timestamp_.append(0)
+#             else:
+#                 a = datetime.datetime.fromtimestamp(float(time_unix))
+#                 timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
+#         return timestamp_
+#     else: print(f"{column} not in data")
 
 
 def convert_2_timestamp(column, data):
-    """convert from unix time to readable timestamp
-        args: column: columns that needs to be converted to timestamp
-                data: data that has the specified column
-    """
+    """Convert from Unix time to readable timestamp."""
     if column in data.columns.values:
         timestamp_ = []
         for time_unix in data[column]:
-            if time_unix == 0:
+            if time_unix is None:
+                timestamp_.append(None)
+            elif time_unix == 0:
                 timestamp_.append(0)
             else:
-                a = datetime.datetime.fromtimestamp(float(time_unix))
-                timestamp_.append(a.strftime('%Y-%m-%d %H:%M:%S'))
+                try:
+                    # Convert Unix timestamp to datetime
+                    dt = datetime.datetime.utcfromtimestamp(float(time_unix))
+                    # Format datetime as a string
+                    timestamp_.append(dt.strftime('%Y-%m-%d %H:%M:%S'))
+                except ValueError as e:
+                    # Handle the case where the timestamp is out of range
+                    print(f"Error converting timestamp: {e}")
+                    timestamp_.append(None)
         return timestamp_
     else: 
         print(f"{column} not in data")
+
 
 def get_tagged_users(df):
     """get all @ in the messages"""
