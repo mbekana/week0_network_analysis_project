@@ -9,6 +9,7 @@ from datetime import datetime
 from pick import pick
 from time import sleep
 import pandas as pd
+from collections import Counter
 
 # Create wrapper classes for using slack_sdk in place of slacker
 class SlackDataLoader:
@@ -70,84 +71,56 @@ class SlackDataLoader:
             userIdsByName[user['name']] = user['id']
         return userNamesById, userIdsByName        
 
+
     def slack_parser(self, path_channel):
         combined = []
-        for json_file in glob.glob(f"{path_channel}*.json"):
+        for json_file in glob.glob(f"{path_channel}/*.json"):
             with open(json_file, 'r', encoding="utf8") as slack_data:
-                combined.append(json.load(slack_data))
+                data = json.load(slack_data)
+                if isinstance(data, list):
+                    combined.extend(data)
 
-        dflist = []
-        for slack_data in combined:
-            msg_type, msg_content, sender_id, time_msg, msg_dist, time_thread_st, reply_users, reply_count, reply_users_count, tm_thread_end = [],[],[],[],[],[],[],[],[],[]
+        if not combined:
+            print(f"No valid data found in {path_channel}")
+            return pd.DataFrame()
 
-            for row in slack_data:
-                print(f"Type of 'row': {type(row)}")
-                print(f"Row data: {row}")
+        msg_type_list, msg_content_list, sender_name_list, time_msg_list, msg_dist_list, time_thread_start_list, reply_count_list, reply_users_count_list, reply_users_list, tm_thread_end_list = [], [], [], [], [], [], [], [], [], []
 
-                if isinstance(row, dict):
-                    if 'bot_id' in row:
-                        print(f"Skipped row: {row}")
-                        continue
+        for row in combined:
+            if 'bot_id' not in row.keys():
+                msg_type_list.append(row.get('type', ''))
+                msg_content_list.append(row.get('text', ''))
+                sender_name_list.append(row['user_profile']['real_name'] if 'user_profile' in row else 'Not provided')
+                time_msg_list.append(row.get('ts', ''))
 
-                    msg_type.append(row.get('type', 'Not provided'))
-                    msg_content.append(row.get('text', 'Not provided'))
-
-                    if 'user_profile' in row.keys():
-                        sender_id.append(row['user_profile']['real_name'])
+                # Check for the existence of 'blocks' and nested elements
+                if 'blocks' in row and row['blocks'] and 'elements' in row['blocks'][0] and row['blocks'][0]['elements']:
+                    # Check if there are elements in the 'elements' list
+                    if 'elements' in row['blocks'][0]['elements'][0] and row['blocks'][0]['elements'][0]['elements']:
+                        msg_dist_list.append(row['blocks'][0]['elements'][0]['elements'][0]['type'])
                     else:
-                        sender_id.append('Not provided')
-                        time_msg.append(row.get('ts', 'Not provided'))
-
-                    if 'blocks' in row.keys() and row['blocks']:
-                        block = row['blocks'][0]
-                        if 'elements' in block.keys() and block['elements']:
-                            element = block['elements'][0]
-                            if 'elements' in element.keys() and element['elements']:
-                                msg_dist.append(element['elements'][0]['type'])
-                            else:
-                                msg_dist.append('unknown')
-                        else:
-                            msg_dist.append('unknown')
-                    else:
-                        msg_dist.append('unknown')
-
-                    if 'thread_ts' in row.keys():
-                        time_thread_st.append(row['thread_ts'])
-                    else:
-                        time_thread_st.append(None)
-
-                    if 'reply_users' in row.keys():
-                        reply_users.append(",".join(row['reply_users']))
-                    else:
-                        reply_users.append('Not provided')
-
-                    if 'reply_count' in row.keys():
-                        reply_count.append(row['reply_count'])
-                        reply_users_count.append(row['reply_users_count'])
-                        tm_thread_end.append(row['latest_reply'])
-                    else:
-                        reply_count.append(0)
-                        reply_users_count.append(0)
-                        tm_thread_end.append(None)
+                        msg_dist_list.append('reshared')
                 else:
-                    print(f"Skipping row: {row}")
-                    # Handle the case where row is a string (e.g., skip or perform appropriate action)
-                    pass
+                    msg_dist_list.append('reshared')
 
-            data = zip(msg_type, msg_content, sender_id, time_msg, msg_dist, time_thread_st,
-                        reply_count, reply_users_count, reply_users, tm_thread_end)
-            columns = ['msg_type', 'msg_content', 'sender_name', 'msg_sent_time', 'msg_dist_type',
-                        'time_thread_start', 'reply_count', 'reply_users_count', 'reply_users', 'tm_thread_end']
+                time_thread_start_list.append(row.get('thread_ts', 0))
+                reply_users_list.append(",".join(row.get('reply_users', [])))
+                reply_count_list.append(row.get('reply_count', 0))
+                reply_users_count_list.append(row.get('reply_users_count', 0))
+                tm_thread_end_list.append(row.get('latest_reply', 0))
 
-            df = pd.DataFrame(data=data, columns=columns)
-            df = df[df['sender_name'] != 'Not provided']
-            dflist.append(df)
 
-        dfall = pd.concat(dflist, ignore_index=True)
-        dfall['channel'] = path_channel.split('/')[-1].split('.')[0]
-        dfall = dfall.reset_index(drop=True)
-        print("Row data: {}".format(row))
-        return dfall
+        data = zip(msg_type_list, msg_content_list, sender_name_list, time_msg_list, msg_dist_list, time_thread_start_list,
+                   reply_count_list, reply_users_count_list, reply_users_list, tm_thread_end_list)
+        columns = ['msg_type', 'msg_content', 'sender_name', 'msg_sent_time', 'msg_dist_type',
+                   'time_thread_start', 'reply_count', 'reply_users_count', 'reply_users', 'tm_thread_end']
+
+        df = pd.DataFrame(data=data, columns=columns)
+        df = df[df['sender_name'] != 'Not provided']
+        df['channel'] = path_channel.split('/')[-1].split('.')[0]
+        df = df.reset_index(drop=True)
+
+        return df
     
     
     def parse_slack_reaction(self, path, channel):
@@ -156,25 +129,28 @@ class SlackDataLoader:
         combined = []
         for json_file in glob.glob(f"{path}*.json"):
             with open(json_file, 'r') as slack_data:
-                combined.append(json.load(slack_data))  # Load the JSON data from each file
+                combined.append(slack_data)
 
         reaction_name, reaction_count, reaction_users, msg, user_id = [], [], [], [], []
 
         for k in combined:
-            for i_count, i in enumerate(k):  # Iterate over the loaded JSON object
-                if isinstance(i, dict) and 'reactions' in i.keys():  # Check if i is a dictionary with 'reactions' key
+            slack_data = json.load(open(k.name, 'r', encoding="utf-8"))
+            
+            for i_count, i in enumerate(slack_data):
+                if 'reactions' in i.keys():
                     for j in range(len(i['reactions'])):
                         msg.append(i['text'])
                         user_id.append(i['user'])
                         reaction_name.append(i['reactions'][j]['name'])
                         reaction_count.append(i['reactions'][j]['count'])
                         reaction_users.append(",".join(i['reactions'][j]['users']))
-
+                    
         data_reaction = zip(reaction_name, reaction_count, reaction_users, msg, user_id)
         columns_reaction = ['reaction_name', 'reaction_count', 'reaction_users_count', 'message', 'user_id']
         df_reaction = pd.DataFrame(data=data_reaction, columns=columns_reaction)
         df_reaction['channel'] = channel
         return df_reaction
+        
 
 
 if __name__ == "__main__":
@@ -182,3 +158,5 @@ if __name__ == "__main__":
 
     parser.add_argument('--zip', help="Name of a zip file to import")
     args = parser.parse_args()
+
+

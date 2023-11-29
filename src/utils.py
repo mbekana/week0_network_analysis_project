@@ -146,15 +146,37 @@ def process_msgs(msg):
 
 def get_messages_from_channel(channel_path):
     '''
-    get all the messages from a channel        
+    get all the messages from a channel
     '''
-    channel_json_files = os.listdir(channel_path)
-    channel_msgs = [json.load(open(channel_path + "/" + f)) for f in channel_json_files]
-
-    df = pd.concat([pd.DataFrame(get_messages_dict(msgs)) for msgs in channel_msgs])
-    print(f"Number of messages in channel: {len(df)}")
+    # Filter out non-JSON files
+    channel_json_files = [f for f in os.listdir(channel_path) if f.endswith('.json')]
     
+    # Check if there are valid JSON files
+    if not channel_json_files:
+        print(f"No valid JSON files found in {channel_path}")
+        return pd.DataFrame()
+
+    channel_msgs = []
+
+    for json_file in channel_json_files:
+        with open(os.path.join(channel_path, json_file), 'r', encoding="utf8") as f:
+            try:
+                slack_data = json.load(f)
+                channel_msgs.append(slack_data)
+            except json.JSONDecodeError as e:
+                print(f"Error loading JSON file {json_file}: {e}")
+
+    # Check if there are any valid messages
+    if not channel_msgs:
+        print(f"No valid messages found in {channel_path}")
+        return pd.DataFrame()
+
+    df = pd.concat([pd.DataFrame(get_messages_dict(msgs)) for msgs in channel_msgs], ignore_index=True)
+    print(f"Number of messages in channel: {len(df)}")
+
     return df
+
+
 
 
 def convert_2_timestamp(column, data):
