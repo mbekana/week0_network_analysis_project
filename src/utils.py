@@ -184,8 +184,10 @@ def convert_2_timestamp(column, data):
     if column in data.columns.values:
         timestamp_ = []
         for time_unix in data[column]:
-            if time_unix is None:
+            if pd.isnull(time_unix):  # Check for NaN values
                 timestamp_.append(None)
+            elif isinstance(time_unix, pd.Timestamp):  # Check if already a timestamp
+                timestamp_.append(time_unix.strftime('%Y-%m-%d %H:%M:%S'))
             elif time_unix == 0:
                 timestamp_.append(0)
             else:
@@ -201,6 +203,7 @@ def convert_2_timestamp(column, data):
         return timestamp_
     else: 
         print(f"{column} not in data")
+
 
 
 def get_tagged_users(df):
