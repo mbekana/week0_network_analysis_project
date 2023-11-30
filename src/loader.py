@@ -47,13 +47,23 @@ class SlackDataLoader:
         return users
     
     def get_channels(self):
-        '''
-        write a function to get all the channels from the json file
-        '''
-        with open(os.path.join(self.path, 'channels.json'), 'r') as f:
-            channels = json.load(f)
-
+        try:
+            with open(os.path.join(self.path, 'channels.json'), 'r') as f:
+                channels = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading channels: {e}")
+            channels = []
         return channels
+
+    def get_users(self):
+        try:
+            with open(os.path.join(self.path, 'users.json'), 'r') as f:
+                users = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading users: {e}")
+            users = []
+        return users
+
 
     def get_channel_messages(self, channel_name):
         '''
@@ -158,5 +168,4 @@ if __name__ == "__main__":
 
     parser.add_argument('--zip', help="Name of a zip file to import")
     args = parser.parse_args()
-
 
