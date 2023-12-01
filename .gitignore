@@ -12,7 +12,7 @@ conf/**/*credentials*
 # ignore everything in the following folders
 data/**
 logs/**
-
+/notebooks/mlruns/*
 # except their sub-folders
 !data/**/
 !logs/**/
