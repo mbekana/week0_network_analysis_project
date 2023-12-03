@@ -9,19 +9,19 @@ class SlackMessageWithSchema:
                 "bsonType": "object",
                 "required": ["msg_type", "msg_content", "sender_name", "msg_sent_time", "msg_dist_type",
                              "time_thread_start", "reply_count", "reply_users_count", "reply_users", "tm_thread_end", "channel"],
-                # "properties": {
-                #     "msg_type": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "msg_content": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "sender_name": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "msg_sent_time": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "msg_dist_type": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "time_thread_start": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "reply_count": {"bsonType": "int", "description": "must be an integer and is required"},
-                #     "reply_users_count": {"bsonType": "int", "description": "must be an integer and is required"},
-                #     "reply_users": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "tm_thread_end": {"bsonType": "string", "description": "must be a string and is required"},
-                #     "channel": {"bsonType": "string", "description": "must be a string and is required"},
-                # }
+                "properties": {
+                    "msg_type": {"bsonType": "string", "description": "must be a string and is required"},
+                    "msg_content": {"bsonType": "string", "description": "must be a string and is required"},
+                    "sender_name": {"bsonType": "string", "description": "must be a string and is required"},
+                    "msg_sent_time": {"bsonType": "string", "description": "must be a string and is required"},
+                    "msg_dist_type": {"bsonType": "string", "description": "must be a string and is required"},
+                    "time_thread_start": {"bsonType": "string", "description": "must be a string and is required"},
+                    "reply_count": {"bsonType": "int", "description": "must be an integer and is required"},
+                    "reply_users_count": {"bsonType": "int", "description": "must be an integer and is required"},
+                    "reply_users": {"bsonType": "string", "description": "must be a string and is required"},
+                    "tm_thread_end": {"bsonType": "string", "description": "must be a string and is required"},
+                    "channel": {"bsonType": "string", "description": "must be a string and is required"},
+                }
             }
         }
         
