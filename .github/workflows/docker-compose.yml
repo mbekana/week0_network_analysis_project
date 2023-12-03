@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  flask-app:
+    image: backend:latest
+    ports:
+      - "5000:5000"
+    restart: always
+
+  react-app:
+    image: frontend:latest
+    ports:
+      - "80:80"
+    restart: always
